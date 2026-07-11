@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>متابعة قضاء الصلوات</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0F6E56">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0F2E2C;
+    --card:#153F3B;
+    --card-border:#25554F;
+    --text:#F1E9D8;
+    --text-dim:#B9C9C4;
+    --accent:#C9A15A;
+    --green:#3FAE8A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Segoe UI', Tahoma, sans-serif;
+    padding:20px 16px 40px;
+    min-height:100vh;
+  }
+  h1{
+    font-size:19px;
+    font-weight:600;
+    margin:0 0 4px;
+    text-align:center;
+  }
+  .sub{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:13px;
+    margin:0 0 20px;
+  }
+  .setup{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:14px 16px;
+    margin-bottom:14px;
+  }
+  .setup p{margin:0 0 10px; font-size:13px; color:var(--text-dim);}
+  .setup-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  input[type=number]{
+    width:100px;
+    background:var(--bg);
+    border:1px solid var(--card-border);
+    color:var(--text);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:15px;
+  }
+  button{
+    background:var(--card-border);
+    color:var(--text);
+    border:none;
+    border-radius:8px;
+    padding:9px 14px;
+    font-size:13px;
+    cursor:pointer;
+  }
+  button:active{transform:scale(0.97);}
+  .apply-btn{background:var(--accent); color:#2C1E05; font-weight:600; margin-inline-start:auto;}
+
+  .overall{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .ring{position:relative; width:64px; height:64px; flex-shrink:0;}
+  .ring-pct{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:600;
+  }
+  .overall-num{font-size:24px; font-weight:700; margin:0; color:var(--accent);}
+  .overall-label{font-size:13px; color:var(--text-dim); margin:2px 0 0;}
+
+  .cards{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:14px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .card-name{font-size:15px; font-weight:600;}
+  .card-num{font-size:26px; font-weight:700; margin:2px 0; color:var(--green);}
+  .card-sub{font-size:11px; color:var(--text-dim); margin:0 0 6px;}
+  .card-btns{display:flex; gap:6px;}
+  .done-btn{flex:1; background:var(--green); color:#04342C; font-weight:600;}
+  .undo-btn{width:38px; background:var(--bg); border:1px solid var(--card-border); color:var(--text-dim); font-size:13px;}
+
+  .footer-note{
+    text-align:center;
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:20px;
+    opacity:0.8;
+  }
+</style>
+</head>
+<body>
+
+<h1>متابعة قضاء الصلوات</h1>
+<p class="sub">ربنا يتقبل ويعينك 🤍</p>
+
+<div class="setup">
+  <p>عدد الأيام اللي عليك فيها قضاء (تلقائيًا لكل الصلوات)</p>
+  <div class="setup-row">
+    <input id="daysInput" type="number" min="0" value="1460">
+    <span style="font-size:12px; color:var(--text-dim);">يوم</span>
+    <button class="apply-btn" id="applyDays">تطبيق</button>
+  </div>
+</div>
+
+<div class="overall">
+  <div class="ring">
+    <svg width="64" height="64" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="27" fill="none" stroke="#25554F" stroke-width="6"></circle>
+      <circle id="ringProgress" cx="32" cy="32" r="27" fill="none" stroke="#3FAE8A" stroke-width="6" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="169.6" transform="rotate(-90 32 32)"></circle>
+    </svg>
+    <div class="ring-pct" id="ringPct">0%</div>
+  </div>
+  <div>
+    <p class="overall-num" id="overallRemaining">0</p>
+    <p class="overall-label">صلاة متبقية من <span id="overallTotal">0</span></p>
+  </div>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<p class="footer-note">متابعتك محفوظة على جهازك تلقائيًا</p>
+
+<script>
+const prayers = [
+  {key:'fajr', name:'الفجر'},
+  {key:'dhuhr', name:'الظهر'},
+  {key:'asr', name:'العصر'},
+  {key:'maghrib', name:'المغرب'},
+  {key:'isha', name:'العشاء'}
+];
+const STORAGE_KEY = 'qada-tracker-state-v1';
+let state = null;
+
+function defaultState(days){
+  const s = {total:{}, remaining:{}};
+  prayers.forEach(p => { s.total[p.key] = days; s.remaining[p.key] = days; });
+  return s;
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return defaultState(1460);
+}
+
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+function renderCards(){
+  const container = document.getElementById('cards');
+  container.innerHTML = '';
+  prayers.forEach(p => {
+    const remaining = state.remaining[p.key];
+    const total = state.total[p.key];
+    const done = total > 0 ? Math.round(((total-remaining)/total)*100) : 0;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <span class="card-name">${p.name}</span>
+      <span class="card-num">${remaining.toLocaleString('ar')}</span>
+      <p class="card-sub">من أصل ${total.toLocaleString('ar')} (${done}% قضيت)</p>
+      <div class="card-btns">
+        <button class="done-btn" data-key="${p.key}">صليتها</button>
+        <button class="undo-btn" data-key="${p.key}">↩</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+  document.querySelectorAll('.done-btn').forEach(btn => btn.addEventListener('click', () => {
+    const k = btn.getAttribute('data-key');
+    if(state.remaining[k] > 0){ state.remaining[k] -= 1; renderAll(); saveState(); }
+  }));
+  document.querySelectorAll('.undo-btn').forEach(btn => btn.addEventListener('click', () => {
+    const k = btn.getAttribute('data-key');
+    if(state.remaining[k] < state.total[k]){ state.remaining[k] += 1; renderAll(); saveState(); }
+  }));
+}
+
+function renderOverall(){
+  let total = 0, remaining = 0;
+  prayers.forEach(p => { total += state.total[p.key]; remaining += state.remaining[p.key]; });
+  document.getElementById('overallTotal').textContent = total.toLocaleString('ar');
+  document.getElementById('overallRemaining').textContent = remaining.toLocaleString('ar');
+  const pct = total > 0 ? Math.round(((total-remaining)/total)*100) : 0;
+  document.getElementById('ringPct').textContent = pct + '%';
+  const circumference = 169.6;
+  const offset = circumference - (pct/100)*circumference;
+  document.getElementById('ringProgress').setAttribute('stroke-dashoffset', offset.toFixed(1));
+}
+
+function renderAll(){ renderCards(); renderOverall(); }
+
+document.getElementById('applyDays').addEventListener('click', () => {
+  const days = Math.max(0, parseInt(document.getElementById('daysInput').value) || 0);
+  state = defaultState(days);
+  renderAll();
+  saveState();
+});
+
+state = loadState();
+document.getElementById('daysInput').value = state.total.fajr || 1460;
+renderAll();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
